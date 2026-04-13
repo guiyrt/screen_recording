@@ -1,9 +1,16 @@
 services:
   screen_recorder:
     build: .
+    restart: unless-stopped
     container_name: screen_recorder
     network_mode: host
     ipc: host
+
+    volumes:
+      # Required to capture the X11 screen
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      # Data persistence
+      - /home/ternuser/zhaw/data/:/app/data/
 
     deploy:
       resources:
@@ -32,9 +39,3 @@ services:
       - SCREEN__STREAMING__OUTPUT_RESOLUTION=1920x1080
       - SCREEN__STREAMING__FPS=30
       - SCREEN__STREAMING__BITRATE=4M
-
-    volumes:
-      # Required to capture the X11 screen
-      - /tmp/.X11-unix:/tmp/.X11-unix:ro
-      # - /home/regd/AWARE/apr25/:/app/data/
-      - ./data/:/app/data/

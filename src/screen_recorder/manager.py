@@ -35,7 +35,7 @@ class ScreenManager:
             raise RuntimeError("Screen recorder is already running.")
         
         session_path = (
-            self.settings.data_dir / sub_dir
+            self.settings.data_dir / sub_dir / "video_recordings"
             if sub_dir is not None
             else self.settings.data_dir
         )

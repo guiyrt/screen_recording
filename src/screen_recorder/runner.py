@@ -74,7 +74,7 @@ class Runner:
         session_path.mkdir(parents=True, exist_ok=True)
         
         # Unique file per start to prevent overwrites
-        output_file = session_path / f"screen_recording_{datetime.now(timezone.utc):%Y%m%d_%H%M%S}.mkv"
+        output_file = session_path / f"screen_recording__{datetime.now(timezone.utc):%Y%m%d_%H%M%S}.mkv"
         
         ffmpeg_cmd = build_command(self.settings, self.encoder, output_file)
         logger.debug(f"FFmpeg Command: {' '.join(ffmpeg_cmd)}")
