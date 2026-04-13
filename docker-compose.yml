@@ -10,7 +10,9 @@ services:
       # Required to capture the X11 screen
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
       # Data persistence
+      # - /home/regd/AWARE/apr25/:/app/data/
       - /home/ternuser/zhaw/data/:/app/data/
+      
 
     deploy:
       resources:

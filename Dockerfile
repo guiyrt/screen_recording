@@ -35,4 +35,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
 
-CMD ["screen-record", "serve"]
+CMD ["screen-record", "launch"]
