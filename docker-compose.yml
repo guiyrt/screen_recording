@@ -1,0 +1,40 @@
+services:
+  screen_recorder:
+    build: .
+    container_name: screen_recorder
+    network_mode: host
+    ipc: host
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
+              driver: nvidia
+              
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+
+      - SCREEN__DATA_DIR=/app/data
+      - SCREEN__NATS_HOST=nats://localhost:4222
+
+      - SCREEN__MODE=gpu
+      - SCREEN__DISPLAY=${DISPLAY:-:0}
+      
+      - SCREEN__RECORDING__OUTPUT_RESOLUTION=3840x2160
+      - SCREEN__RECORDING__FPS=30
+      - SCREEN__RECORDING__VIDEO_BITRATE=15M
+      - SCREEN__RECORDING__MAX_BITRATE=35M
+
+      - SCREEN__STREAMING__ENABLED=false
+      - SCREEN__STREAMING__URL=udp://127.0.0.1:1234?pkt_size=1316
+      - SCREEN__STREAMING__OUTPUT_RESOLUTION=1920x1080
+      - SCREEN__STREAMING__FPS=30
+      - SCREEN__STREAMING__BITRATE=4M
+
+    volumes:
+      # Required to capture the X11 screen
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      # - /home/regd/AWARE/apr25/:/app/data/
+      - ./data/:/app/data/
