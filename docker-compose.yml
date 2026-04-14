@@ -1,13 +1,20 @@
 services:
   screen_recorder:
-    # build: .
-    image: screen-recorder:latest
+    build: .
     container_name: screen_recorder
     network_mode: host
     ipc: host
 
     device_cgroup_rules:
       - 'c 116:* rmw'
+    
+    # Force the container to run as standard user
+    user: "1000:1000"
+
+    # Retain supplementary group access to hardware mapped into the container
+    group_add:
+      - audio
+      - video
 
     volumes:
       # Required to capture the X11 screen
@@ -17,7 +24,7 @@ services:
       - /dev/snd:/dev/snd
 
       # Data persistence
-      - /home/tern/zhaw/data/:/app/data/
+      - ./data/:/app/data/
 
     deploy:
       resources:
@@ -36,7 +43,7 @@ services:
       - SCREEN__MODE=gpu
       - SCREEN__DISPLAY=${DISPLAY:-:1}
 
-      - SCREEN__AUDIO__ENABLED=true
+      - SCREEN__AUDIO__ENABLED=false
       - SCREEN__AUDIO__DEVICE=sysdefault:CARD=SoloCast
       
       - SCREEN__RECORDING__OUTPUT_RESOLUTION=3840x2160

@@ -10,6 +10,9 @@ RUN apt-get update && \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Create a non-root user (UID 1000) and add to necessary hardware groups
+RUN chown -R 1000:1000 /app
+
 # Copy 'uv' binary directly from Astral's image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -18,14 +21,17 @@ ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy 
 ENV UV_NO_DEV=1
 
+# Switch to the non-root user
+USER 1000:1000
+
 # Copy project definitions
-COPY pyproject.toml uv.lock README.md ./
+COPY --chown=1000:1000 pyproject.toml uv.lock README.md ./
 
 # Install dependencies
 RUN uv sync --frozen --no-install-project --no-editable
 
 # Copy source and install project
-COPY src/ ./src
+COPY --chown=1000:1000 src/ ./src
 RUN uv sync --frozen --no-editable
 
 # Activate the virtual environment for uv scripts
