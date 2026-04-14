@@ -2,11 +2,16 @@ from importlib.metadata import version
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, BaseModel
 from pathlib import Path
-from typing import Optional
 
 class LoggingConfig(BaseModel):
     level: str = "INFO"
     format: str = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+
+class AudioConfig(BaseModel):
+    enabled: bool = True
+    device: str = "sysdefault:CARD=SoloCast"
+    codec: str = "aac"
+    bitrate: str = "128k"
 
 class StreamingConfig(BaseModel):
     enabled: bool = False
@@ -30,6 +35,7 @@ class AppSettings(BaseSettings):
     mode: str = Field(default="gpu")
 
     # ffmpeg settings
+    audio: AudioConfig = Field(default_factory=AudioConfig)
     recording: RecordingConfig = Field(default_factory=RecordingConfig)
     streaming: StreamingConfig = Field(default_factory=StreamingConfig)
     

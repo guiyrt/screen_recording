@@ -18,6 +18,21 @@ def build_command(settings: AppSettings, encoder: VideoEncoder, output_file: Pat
         "-i", settings.display,
     ]
 
+    if settings.audio.enabled:
+        logger.info(f"Audio recording enabled ({settings.audio.device})")
+        cmd.extend([
+            "-f", "alsa",
+            "-thread_queue_size", "1024",
+            "-i", settings.audio.device,
+            "-af", "aresample=async=1"
+        ])
+        # The video is input 0, the audio is input 1.
+        audio_map = ["-map", "1:a"]
+        audio_encode = ["-c:a", settings.audio.codec, "-b:a", settings.audio.bitrate]
+    else:
+        audio_map = []
+        audio_encode = []
+
     # --- SIMPLIFIED FILTER GRAPH ---
     if settings.streaming.enabled:
         # Split into two paths, and fast-scale the stream path
@@ -30,7 +45,9 @@ def build_command(settings: AppSettings, encoder: VideoEncoder, output_file: Pat
 
     # --- LOCAL FILE (PRIORITY) ---
     cmd.extend(["-map", map_file])
+    cmd.extend(audio_map)
     cmd.extend(encoder.file_flags)
+    cmd.extend(audio_encode)
     cmd.extend([
         "-pix_fmt", "yuv420p",
         "-b:v", settings.recording.video_bitrate,
@@ -42,7 +59,9 @@ def build_command(settings: AppSettings, encoder: VideoEncoder, output_file: Pat
     # --- NETWORK STREAM (NEGLECTABLE) ---
     if map_stream:
         cmd.extend(["-map", map_stream])
+        cmd.extend(audio_map) 
         cmd.extend(encoder.stream_flags)
+        cmd.extend(audio_encode)
         cmd.extend([
             "-pix_fmt", "yuv420p",
             "-b:v", settings.streaming.bitrate,

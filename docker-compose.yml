@@ -1,18 +1,23 @@
 services:
   screen_recorder:
-    build: .
-    restart: unless-stopped
+    # build: .
+    image: screen-recorder:latest
     container_name: screen_recorder
     network_mode: host
     ipc: host
 
+    device_cgroup_rules:
+      - 'c 116:* rmw'
+
     volumes:
       # Required to capture the X11 screen
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
+
+      # Audio
+      - /dev/snd:/dev/snd
+
       # Data persistence
-      # - /home/regd/AWARE/apr25/:/app/data/
-      - /home/ternuser/zhaw/data/:/app/data/
-      
+      - /home/tern/zhaw/data/:/app/data/
 
     deploy:
       resources:
@@ -29,7 +34,10 @@ services:
       - SCREEN__NATS_HOST=nats://localhost:4222
 
       - SCREEN__MODE=gpu
-      - SCREEN__DISPLAY=${DISPLAY:-:0}
+      - SCREEN__DISPLAY=${DISPLAY:-:1}
+
+      - SCREEN__AUDIO__ENABLED=true
+      - SCREEN__AUDIO__DEVICE=sysdefault:CARD=SoloCast
       
       - SCREEN__RECORDING__OUTPUT_RESOLUTION=3840x2160
       - SCREEN__RECORDING__FPS=30
