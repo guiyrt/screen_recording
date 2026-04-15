@@ -20,8 +20,9 @@ services:
       # Required to capture the X11 screen
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
 
-      # Audio
-      - /dev/snd:/dev/snd
+      # Audio via pulse
+      - /run/user/1000/pulse/native:/run/user/1000/pulse/native
+      - ~/.config/pulse/cookie:/home/appuser/.pulse-cookie
 
       # Data persistence
       - ./data/:/app/data/
@@ -43,8 +44,8 @@ services:
       - SCREEN__MODE=gpu
       - SCREEN__DISPLAY=${DISPLAY:-:1}
 
-      - SCREEN__AUDIO__ENABLED=false
-      - SCREEN__AUDIO__DEVICE=sysdefault:CARD=SoloCast
+      - SCREEN__AUDIO__ENABLED=true
+      - SCREEN__AUDIO__DEVICE=alsa_input.usb-HP__Inc_HyperX_SoloCast-00.iec958-stereo
       
       - SCREEN__RECORDING__OUTPUT_RESOLUTION=3840x2160
       - SCREEN__RECORDING__FPS=30

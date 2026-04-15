@@ -21,7 +21,7 @@ def build_command(settings: AppSettings, encoder: VideoEncoder, output_file: Pat
     if settings.audio.enabled:
         logger.info(f"Audio recording enabled ({settings.audio.device})")
         cmd.extend([
-            "-f", "alsa",
+            "-f", "pulse",
             "-thread_queue_size", "1024",
             "-i", settings.audio.device,
             "-af", "aresample=async=1"

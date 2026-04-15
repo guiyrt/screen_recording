@@ -7,6 +7,7 @@ WORKDIR /app
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ffmpeg \
+    libpulse0 \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
