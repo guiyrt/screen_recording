@@ -39,7 +39,7 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
 
       - SCREEN__DATA_DIR=/app/data
-      - SCREEN__NATS_HOST=nats://localhost:4222
+      - SCREEN__NATS_HOST=nats://127.0.0.1:4222
 
       - SCREEN__MODE=gpu
       - SCREEN__DISPLAY=${DISPLAY:-:1}
