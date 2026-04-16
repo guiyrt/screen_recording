@@ -47,9 +47,11 @@ class ScreenManager:
     async def stop(self) -> None:
         """Cleans up the runner."""
         if self.runner:
-            await self.runner.stop()
-            self.runner = None
-            logger.info("Screen recording runner stopped.")
+            try:
+                await self.runner.stop()
+            finally:
+                self.runner = None
+                logger.info("Screen recording runner stopped and cleared.")
 
     async def listen_to_nats(self, stop_event: asyncio.Event):
         """Orchestration loop: Heartbeats + Commands."""

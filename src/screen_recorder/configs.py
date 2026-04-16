@@ -7,9 +7,13 @@ class LoggingConfig(BaseModel):
     level: str = "INFO"
     format: str = "%(asctime)s %(levelname)s %(name)s: %(message)s"
 
+class AudioSourceConfig(BaseModel):
+    enabled: bool = False
+    device: str = ""
+
 class AudioConfig(BaseModel):
-    enabled: bool = True
-    device: str = "sysdefault:CARD=SoloCast"
+    microphone: AudioSourceConfig
+    system: AudioSourceConfig
     codec: str = "aac"
     bitrate: str = "128k"
 

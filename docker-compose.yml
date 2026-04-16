@@ -25,7 +25,7 @@ services:
       - ~/.config/pulse/cookie:/home/appuser/.pulse-cookie
 
       # Data persistence
-      - ./data/:/app/data/
+      - ~/data/:/app/data/
 
     deploy:
       resources:
@@ -44,8 +44,11 @@ services:
       - SCREEN__MODE=gpu
       - SCREEN__DISPLAY=${DISPLAY:-:1}
 
-      - SCREEN__AUDIO__ENABLED=true
-      - SCREEN__AUDIO__DEVICE=alsa_input.usb-HP__Inc_HyperX_SoloCast-00.iec958-stereo
+      - SCREEN__AUDIO__MICROPHONE__ENABLED=false
+      - SCREEN__AUDIO__MICROPHONE__DEVICE=alsa_input.usb-Plantronics_Plantronics_Blackwire_3210_Series_1B04296BF7CDB648959159348B2CABC2-00.analog-stereo
+
+      - SCREEN__AUDIO__SYSTEM__ENABLED=false
+      - SCREEN__AUDIO__SYSTEM__DEVICE=alsa_output.usb-Plantronics_Plantronics_Blackwire_3210_Series_1B04296BF7CDB648959159348B2CABC2-00.mono-fallback.monitor
       
       - SCREEN__RECORDING__OUTPUT_RESOLUTION=3840x2160
       - SCREEN__RECORDING__FPS=30

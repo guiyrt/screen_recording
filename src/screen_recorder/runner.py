@@ -30,45 +30,70 @@ class Runner:
         return self.process is not None and self.process.returncode is None
 
     async def _stream_ffmpeg_logs(self):
-        """Continuously reads FFmpeg's stderr and pipes it to the Python logger."""
+        """Continuously reads FFmpeg's stderr in chunks to handle \\r and \\n."""
         if not self.process or not self.process.stderr:
             return
             
+        buffer = ""
         try:
             while True:
-                line = await self.process.stderr.readline()
-                if not line:
+                # Read in 4KB chunks to prevent LimitOverrunError
+                chunk = await self.process.stderr.read(4096)
+                if not chunk:
                     break # EOF reached
-                    
-                # Decode logs from ffmpeg
-                decoded_line = line.decode('utf-8', errors='replace').strip()
-
-                # Get video starting date
-                if "start:" in decoded_line and "Duration:" in decoded_line:
-                    if match := re.search(r"start:\s*([\d.]+)", decoded_line):
-                        start_epoch = float(match.group(1))
-                        start_ts = datetime.fromtimestamp(start_epoch, tz=timezone.utc)
-
-                        # Save the sync data next to the video
-                        sync_data = {
-                            "start_epoch_sec": start_epoch,
-                            "start_utc_iso": start_ts.isoformat(),
-                            "fps": self.settings.recording.fps
-                        }
-                        
-                        with open(self._session_path / f"screenrecording_metadata__{start_ts:%Y%m%d_%H%M%S}.json", "w") as f:
-                            json.dump(sync_data, f, indent=2)
-                        
-                        logger.info(f"Video UTC Sync Anchor saved: {start_epoch}")
                 
-                # Get correct logging level
-                if "Error" in decoded_line or "fail" in decoded_line.lower():
-                    logger.error(f"[FFMPEG] {decoded_line}")
-                else:
-                    logger.info(f"[FFMPEG] {decoded_line}")
+                buffer += chunk.decode('utf-8', errors='replace')
+                
+                # Process all complete lines in the buffer split by \r OR \n
+                while True:
+                    r_idx = buffer.find('\r')
+                    n_idx = buffer.find('\n')
+                    
+                    if r_idx == -1 and n_idx == -1:
+                        break # Need more data, wait for next chunk
+                    
+                    # Find the closest separator
+                    if r_idx != -1 and n_idx != -1:
+                        sep_idx = min(r_idx, n_idx)
+                    else:
+                        sep_idx = r_idx if r_idx != -1 else n_idx
+                        
+                    line = buffer[:sep_idx].strip()
+                    buffer = buffer[sep_idx+1:] # Remove processed part + separator
+                    
+                    if line:
+                        self._process_log_line(line)
+                        
         except asyncio.CancelledError:
             pass
-    
+        except Exception as e:
+            logger.error(f"FFmpeg log stream crashed: {e}")
+
+    def _process_log_line(self, decoded_line: str):
+        """Processes a single line of FFmpeg output."""
+        # Get video starting date
+        if "start:" in decoded_line and "Duration:" in decoded_line:
+            if match := re.search(r"start:\s*([\d.]+)", decoded_line):
+                start_epoch = float(match.group(1))
+                start_ts = datetime.fromtimestamp(start_epoch, tz=timezone.utc)
+
+                sync_data = {
+                    "start_epoch_sec": start_epoch,
+                    "start_utc_iso": start_ts.isoformat(),
+                    "fps": self.settings.recording.fps
+                }
+                
+                with open(self._session_path / f"screenrecording_metadata__{start_ts:%Y%m%d_%H%M%S}.json", "w") as f:
+                    json.dump(sync_data, f, indent=2)
+                
+                logger.info(f"Video UTC Sync Anchor saved: {start_epoch}")
+        
+        # We ignore standard progress lines to avoid log spam, but log errors/info
+        if not decoded_line.startswith("frame="):
+            if "Error" in decoded_line or "fail" in decoded_line.lower():
+                logger.error(f"[FFMPEG] {decoded_line}")
+            else:
+                logger.info(f"[FFMPEG] {decoded_line}")
     async def _watch_process(self):
         """Waits for the process to exit. If it exits unexpectedly, clean up."""
         if not self.process:
@@ -136,7 +161,8 @@ class Runner:
         for task in tasks:
             task.cancel()
         
-        await asyncio.gather(*tasks)
+        # If the log task crashed, this ensures the runner teardown still finishes.
+        await asyncio.gather(*tasks, return_exceptions=True)
 
         self.process = None
         self._stopping = False
