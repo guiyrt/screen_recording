@@ -8,6 +8,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ffmpeg \
     libpulse0 \
+    gosu \
+    iproute2 \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -35,6 +37,9 @@ RUN uv sync --frozen --no-install-project --no-editable
 COPY --chown=1000:1000 src/ ./src
 RUN uv sync --frozen --no-editable
 
+# Copy GoPro entrypoint (device discovery and network setup)
+COPY --chmod=755 gopro_entrypoint.sh /app/gopro_entrypoint.sh
+
 # Activate the virtual environment for uv scripts
 ENV PATH="/app/.venv/bin:$PATH"
 
@@ -42,4 +47,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
 
-CMD ["screen-record", "launch"]
+CMD ["screen-record", "serve"]

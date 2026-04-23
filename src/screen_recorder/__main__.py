@@ -7,8 +7,8 @@ import typer
 
 from .configs import AppSettings, OrchestratedSettings, LoggingConfig
 from .manager import ScreenManager
-from .runner import Runner
-from .ffmpeg import get_encoder_strategy
+from .runners import BaseRunner
+from .factories import get_encoder_strategy
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
@@ -77,29 +77,36 @@ async def setup_nats(host: str) -> nats.NATS:
 
 @app.command()
 def serve():
+    """Standalone mode: Starts recording immediately and runs until interrupted."""
     settings = AppSettings()
     setup_logger(settings.logging)
-    logger.debug(settings)
     
     async def _run():
         stop_event = asyncio.Event()
         setup_signals(stop_event)
 
+        # In standalone mode, if any runner crashes, we shut down the whole app
         async def _on_error():
-            logger.error("Standalone Runner crashed. Setting stop event.")
+            logger.error("A runner crashed in standalone mode. Shutting down...")
             stop_event.set()
         
         encoder_strategy = await get_encoder_strategy(settings)
-        runner = Runner(settings, encoder_strategy, on_error=_on_error)
         
-        await runner.start()
+        # Instantiate Manager WITHOUT a NATS client
+        manager = ScreenManager(settings, encoder_strategy, nc=None)
+        
+        # Override the default error handler to stop the main event loop
+        manager._handle_runner_error = _on_error
         
         try:
-            logger.info("Running screen recording. Press Ctrl+C or stop container to exit.")
+            # Start all enabled runners
+            await manager.start()
+            
+            logger.info("Recording active. Press Ctrl+C to stop.")
             await stop_event.wait()
         finally:
-            logger.info("Shutting down screen recording...")
-            await runner.stop()
+            logger.info("Shutting down runners...")
+            await manager.stop()
 
     try:
         asyncio.run(_run())

@@ -35,28 +35,86 @@ services:
               driver: nvidia
               
     environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
-
       - SCREEN__DATA_DIR=/app/data
       - SCREEN__NATS_HOST=nats://127.0.0.1:4222
-
+      - SCREEN__HEALTH_SUBJECT=screen.health
+      - SCREEN__CMDS_SUBJECT=screen.cmds
       - SCREEN__MODE=gpu
-      - SCREEN__DISPLAY=${DISPLAY:-:1}
 
       - SCREEN__AUDIO__MICROPHONE__ENABLED=false
       - SCREEN__AUDIO__MICROPHONE__DEVICE=alsa_input.usb-Plantronics_Plantronics_Blackwire_3210_Series_1B04296BF7CDB648959159348B2CABC2-00.analog-stereo
-
       - SCREEN__AUDIO__SYSTEM__ENABLED=false
       - SCREEN__AUDIO__SYSTEM__DEVICE=alsa_output.usb-Plantronics_Plantronics_Blackwire_3210_Series_1B04296BF7CDB648959159348B2CABC2-00.mono-fallback.monitor
       
-      - SCREEN__RECORDING__OUTPUT_RESOLUTION=3840x2160
-      - SCREEN__RECORDING__FPS=30
-      - SCREEN__RECORDING__VIDEO_BITRATE=15M
-      - SCREEN__RECORDING__MAX_BITRATE=35M
+      - SCREEN__SCREEN__ENABLED=true
+      - SCREEN__SCREEN__DISPLAY=${DISPLAY:-:1}
+      - SCREEN__SCREEN__FPS=30
+      - SCREEN__SCREEN__VIDEO_BITRATE=15M
+      - SCREEN__SCREEN__MAX_BITRATE=35M
 
-      - SCREEN__STREAMING__ENABLED=false
-      - SCREEN__STREAMING__URL=udp://127.0.0.1:1234?pkt_size=1316
-      - SCREEN__STREAMING__OUTPUT_RESOLUTION=1920x1080
-      - SCREEN__STREAMING__FPS=30
-      - SCREEN__STREAMING__BITRATE=4M
+      - SCREEN__SCREEN__STREAMING__ENABLED=true
+      - SCREEN__SCREEN__STREAMING__URL=udp://127.0.0.1:1234?pkt_size=1316
+      - SCREEN__SCREEN__STREAMING__RESOLUTION=1920:1080
+
+  gopro_recorder:
+    build: .
+    container_name: gopro_recorder
+    network_mode: host
+    
+    # TODO: DOES IT WORK WITHOUT THIS??
+    ipc: host
+
+    # Give it network permissions
+    cap_add:
+      - NET_ADMIN
+
+    group_add:
+      - audio
+
+    # Configure GoPro
+    entrypoint: ["/app/gopro_entrypoint.sh"]
+
+    device_cgroup_rules:
+      - 'c 116:* rmw'
+
+    volumes:
+      # Audio via pulse
+      - /run/user/1000/pulse/native:/run/user/1000/pulse/native
+      - ~/.config/pulse/cookie:/home/appuser/.pulse-cookie
+
+      # Data persistence
+      - ~/data/:/app/data/
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
+              driver: nvidia
+              
+    environment:
+      # Pass host UID/GID to the entrypoint
+      - PUID=1000
+      - PGID=1000
+
+      - SCREEN__DATA_DIR=/app/data
+      - SCREEN__NATS_HOST=nats://127.0.0.1:4222
+      - SCREEN__HEALTH_SUBJECT=gopro.health
+      - SCREEN__CMDS_SUBJECT=gopro.cmds
+      - SCREEN__MODE=gpu
+
+      - SCREEN__AUDIO__MICROPHONE__ENABLED=false
+      - SCREEN__AUDIO__MICROPHONE__DEVICE=alsa_input.usb-Plantronics_Plantronics_Blackwire_3210_Series_1B04296BF7CDB648959159348B2CABC2-00.analog-stereo
+      - SCREEN__AUDIO__SYSTEM__ENABLED=false
+      - SCREEN__AUDIO__SYSTEM__DEVICE=alsa_output.usb-Plantronics_Plantronics_Blackwire_3210_Series_1B04296BF7CDB648959159348B2CABC2-00.mono-fallback.monitor
+      
+      - SCREEN__GOPRO__ENABLED=true
+      - SCREEN__GOPRO__RESOLUTION=1080
+      - SCREEN__GOPRO__FOV=Wide
+      - SCREEN__GOPRO__FPS=30
+      - SCREEN__GOPRO__VIDEO_BITRATE=15M
+      - SCREEN__GOPRO__MAX_BITRATE=20M
+
+      - SCREEN__SCREEN__STREAMING__ENABLED=false
+      - SCREEN__SCREEN__STREAMING__URL=udp://127.0.0.1:1234?pkt_size=1316
+      - SCREEN__SCREEN__STREAMING__RESOLUTION=1920:1080

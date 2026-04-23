@@ -1,7 +1,8 @@
 from importlib.metadata import version
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, BaseModel
+from pydantic import Field, BaseModel, PositiveInt
 from pathlib import Path
+from typing import Literal, Optional
 
 class LoggingConfig(BaseModel):
     level: str = "INFO"
@@ -14,34 +15,49 @@ class AudioSourceConfig(BaseModel):
 class AudioConfig(BaseModel):
     microphone: AudioSourceConfig
     system: AudioSourceConfig
-    codec: str = "aac"
+    codec: str = "libopus"
     bitrate: str = "128k"
 
 class StreamingConfig(BaseModel):
     enabled: bool = False
     url: str = "udp://127.0.0.1:1234?pkt_size=1316"
-    output_resolution: str = Field(default="1920x1080")
-    fps: int = Field(default=30)
+    resolution: str = Field(default="1920:1080")
+    fps: PositiveInt = Field(default=30)
     bitrate: str = "4M"
 
-class RecordingConfig(BaseModel):
-    output_resolution: str = Field(default="3840x2160")
-    fps: int = Field(default=30)
+class VideoConfig(BaseModel):
+    fps: PositiveInt = Field(default=30)
+    resolution: Optional[str] = None
     video_bitrate: str = Field(default="15M")
     max_bitrate: str = Field(default="35M")
+    cq: int = Field(default=22, description="Constant Quality target (lower is better quality)")
+    streaming: StreamingConfig = Field(default_factory=StreamingConfig)
+
+class GoProConfig(VideoConfig):
+    enabled: bool = False
+    resolution: Literal["1080", "720", "480"] = "1080"
+    serial_number: str = ""
+    fov: Literal["Wide", "Narrow", "Superview", "Linear"] = "Wide"
+    port: PositiveInt = 8554
+    cq: int = Field(default=26) # Slightly higher CQ to prevent file bloat; bitrate handles the rest
+    record_native_audio: bool = Field(default=True)
+
+class ScreenConfig(VideoConfig):
+    enabled: bool = False
+    display: str = Field(default=":0")
+    cq: int = Field(default=18) # High quality baseline for razor-crisp ATC UI text
 
 class AppSettings(BaseSettings):
     data_dir: Path = Field(default=Path("./data/"))
     nats_host: str = Field(default="nats://localhost:4222")
 
     # Screen capture
-    display: str = Field(default=":0")
     mode: str = Field(default="gpu")
 
     # ffmpeg settings
     audio: AudioConfig = Field(default_factory=AudioConfig)
-    recording: RecordingConfig = Field(default_factory=RecordingConfig)
-    streaming: StreamingConfig = Field(default_factory=StreamingConfig)
+    screen: ScreenConfig = Field(default_factory=ScreenConfig)
+    gopro: GoProConfig = Field(default_factory=GoProConfig)
     
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     __version__: str = version("screen_recorder")
