@@ -7,7 +7,6 @@ import typer
 
 from .configs import AppSettings, OrchestratedSettings, LoggingConfig
 from .manager import ScreenManager
-from .runners import BaseRunner
 from .factories import get_encoder_strategy
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
